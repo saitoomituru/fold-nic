@@ -3,6 +3,7 @@ members = [
   "crates/fold-core",
   "crates/fold-gateway",
   "crates/fold-http-policy",
+  "crates/fold-peer",
   "crates/fold-store",
 ]
 resolver = "2"
@@ -22,8 +23,9 @@ multihash-codetable = { version = "0.2.2", default-features = false, features = 
 http = "1.5.0"
 axum = "0.8.9"
 clap = { version = "4.6.6", features = ["derive"] }
-tokio = { version = "1.53.1", features = ["macros", "net", "rt-multi-thread", "signal"] }
+tokio = { version = "1.53.1", features = ["macros", "net", "rt-multi-thread", "signal", "time"] }
 tower = { version = "0.5.3", features = ["util"] }
+libp2p = { version = "0.56.0", default-features = false, features = ["cbor", "noise", "request-response", "tcp", "tokio", "yamux"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

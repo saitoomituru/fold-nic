@@ -13,7 +13,7 @@ Fold Identity / World / Capability
 
 ## 現在地
 
-状態: `EXPERIMENTAL / DEVELOPMENT-CONTROL-PLANE / RUNTIME-NOT-IMPLEMENTED`
+状態: `EXPERIMENTAL / DEVELOPMENT-CONTROL-PLANE / STAGE0-RUNTIME-PARTIAL`
 
 この初期revisionに含まれるもの:
 
@@ -23,13 +23,15 @@ Fold Identity / World / Capability
 - 実験ログと開発ログのテンプレート、生成、検証
 - local session receiptを作る開発shell
 - offline validator、doctor、unit test、GitHub Actions
+- CID再検証付きlocal CASとloopback限定read-only Gateway
+- 明示dialによるloopback二プロセス間object交換
 
 まだ含まれないもの:
 
 - `.fold` resolver runtime
 - GNUnet GNS adapter
 - zone key生成、署名、rotation、recovery
-- P2P bootstrap、transport failover
+- P2P discovery／bootstrap、複数node replication、transport failover
 - kernel NIC、system resolver差替え
 - standalone SphereOS runtime、model inference、常駐scheduler
 
@@ -82,6 +84,31 @@ curl http://127.0.0.1:7743/healthz
 ```
 
 このGatewayは現時点でhealthと検証済みlocal CAS objectのreadだけを提供します。write endpoint、origin fetch、P2P、`.fold` TLS ingressは未実装です。
+
+二プロセスP2P実験では、まず共有許可を明示して公開fixtureをserver側CASへ投入します。
+
+```console
+cargo run -p fold-peer -- seed-public-fixture \
+  --cas-root /private/tmp/fold-peer-server \
+  --file ./README.md \
+  --acknowledge-loopback-share
+
+cargo run -p fold-peer -- serve \
+  --cas-root /private/tmp/fold-peer-server
+```
+
+`serve`が返した`/p2p/<PeerId>`付きaddressとseed receiptのCIDを、別processから明示します。
+
+```console
+cargo run -p fold-peer -- fetch \
+  --cas-root /private/tmp/fold-peer-client \
+  --dial /ip4/127.0.0.1/tcp/PORT/p2p/PEER_ID \
+  --cid CID \
+  --world fold-nic-forge \
+  --worldline stage0
+```
+
+このPeerIdはprocess内だけの一時transport識別子で、Fold Identityではありません。現段階ではloopback以外を拒否し、自動発見、恒久peer鍵、公開network、複数peer複製を提供しません。
 
 実験ログ:
 

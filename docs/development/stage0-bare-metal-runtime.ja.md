@@ -1,6 +1,6 @@
 # Stage 0 ベアメタルruntime契約
 
-状態: `[ACTIVE-DESIGN]` `[RUNTIME-NOT-IMPLEMENTED]`
+状態: `[ACTIVE-DESIGN]` `[RUNTIME-PARTIAL]`
 
 参照:
 
@@ -46,7 +46,7 @@ fold-store
   -> content-addressed local object store
 
 fold-peer
-  -> discovery / request-response / replication
+  -> loopback request-response / later discovery / later replication
 
 kamii-adapter
   -> optional out-of-process inspection
@@ -56,6 +56,8 @@ hage-device
 ```
 
 最初から全moduleを常駐daemonへ分割する必要はありません。ただしlibrary境界、I/O型、error、receiptを分け、取得objectを自動実行しません。
+
+現在の`fold-peer`はNoise／Yamux上のrequest-responseを二process間で確認する局所実験です。接続先は`/ip4/127.0.0.1/tcp/.../p2p/...`またはIPv6 loopbackへ限定し、PeerIdはprocessごとに生成して永続化しません。これは通信路の相手を指定するtransport識別子であり、Fold Identity、GNS zone key、Worldの署名主体ではありません。
 
 ## 最初の安全条件
 

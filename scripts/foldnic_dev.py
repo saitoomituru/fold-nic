@@ -44,6 +44,9 @@ REQUIRED_FILES = (
     Path("crates/fold-gateway/Cargo.toml"),
     Path("crates/fold-gateway/src/lib.rs"),
     Path("crates/fold-gateway/src/main.rs"),
+    Path("crates/fold-peer/Cargo.toml"),
+    Path("crates/fold-peer/src/lib.rs"),
+    Path("crates/fold-peer/src/main.rs"),
 )
 
 LOG_REQUIRED_MARKERS = (
