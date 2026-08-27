@@ -34,6 +34,16 @@
       "unknowns": ["total-store-quota", "streaming-write", "manifest-persistence"]
     },
     {
+      "id": "http-shared-cache-policy",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "PURE_LIBRARY_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_WORKSPACE",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["rfc9111-full-coverage", "revalidation", "heuristic-freshness"]
+    },
+    {
       "id": "fold-name-parser",
       "implementation": "NOT_IMPLEMENTED",
       "integration": "NOT_STARTED",

@@ -39,6 +39,8 @@ REQUIRED_FILES = (
     Path("crates/fold-core/src/lib.rs"),
     Path("crates/fold-store/Cargo.toml"),
     Path("crates/fold-store/src/lib.rs"),
+    Path("crates/fold-http-policy/Cargo.toml"),
+    Path("crates/fold-http-policy/src/lib.rs"),
 )
 
 LOG_REQUIRED_MARKERS = (
