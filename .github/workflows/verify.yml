@@ -2,7 +2,7 @@ name: 最小再構築検証
 
 on:
   push:
-    branches: [main]
+    branches: [main, "dev/**"]
   pull_request:
   workflow_dispatch:
 
@@ -14,6 +14,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  rust-verification:
+    name: Rust Stage 0
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: repositoryを取得
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Rust stableを準備
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: formatを確認
+        run: cargo fmt --all --check
+      - name: clippyを実行
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Rust unit test
+        run: cargo test --workspace --locked
+
   offline-verification:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest

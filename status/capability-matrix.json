@@ -14,6 +14,76 @@
       "unknowns": []
     },
     {
+      "id": "runtime-protocol-types",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "LIBRARY_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_WORKSPACE",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["canonical-object-encoding", "cid-profile-binding"]
+    },
+    {
+      "id": "local-content-addressed-store",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "LOCAL_LIBRARY_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_WORKSPACE",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["total-store-quota", "streaming-write", "manifest-persistence"]
+    },
+    {
+      "id": "http-shared-cache-policy",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "PURE_LIBRARY_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_WORKSPACE",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["rfc9111-full-coverage", "revalidation", "heuristic-freshness"]
+    },
+    {
+      "id": "localhost-read-only-gateway",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "LOCAL_CAS_READ_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_BINARY",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["origin-fetch", "host-ca-ingress", "write-ingest", "process-supervision"]
+    },
+    {
+      "id": "loopback-explicit-p2p-object-exchange",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "TWO_LOCAL_PROCESSES",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_BINARY",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["peer-discovery", "persistent-identity", "multi-peer-replication", "public-network", "streaming-object-io"]
+    },
+    {
+      "id": "peer-fetch-provenance-receipt",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "FETCH_CLI_OPTIONAL_FILE",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "JSON_FILE",
+      "distribution": "LOCAL_RECEIPT_ONLY",
+      "human_review": "PENDING",
+      "unknowns": ["publisher-signature", "world-authority-binding", "clock-calibration", "receipt-signature"]
+    },
+    {
+      "id": "manifest-signature-exact-bytes-verification",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "PURE_LIBRARY_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_WORKSPACE",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["publisher-authority-binding", "key-rotation", "cli-wiring", "receipt-integration"]
+    },
+    {
       "id": "fold-name-parser",
       "implementation": "NOT_IMPLEMENTED",
       "integration": "NOT_STARTED",

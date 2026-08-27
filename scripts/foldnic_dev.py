@@ -34,6 +34,19 @@ REQUIRED_FILES = (
     PROFILE_PATH,
     COMPONENTS_PATH,
     Path("status/capability-matrix.json"),
+    Path("Cargo.toml"),
+    Path("crates/fold-core/Cargo.toml"),
+    Path("crates/fold-core/src/lib.rs"),
+    Path("crates/fold-store/Cargo.toml"),
+    Path("crates/fold-store/src/lib.rs"),
+    Path("crates/fold-http-policy/Cargo.toml"),
+    Path("crates/fold-http-policy/src/lib.rs"),
+    Path("crates/fold-gateway/Cargo.toml"),
+    Path("crates/fold-gateway/src/lib.rs"),
+    Path("crates/fold-gateway/src/main.rs"),
+    Path("crates/fold-peer/Cargo.toml"),
+    Path("crates/fold-peer/src/lib.rs"),
+    Path("crates/fold-peer/src/main.rs"),
 )
 
 LOG_REQUIRED_MARKERS = (

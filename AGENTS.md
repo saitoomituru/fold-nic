@@ -20,6 +20,9 @@ GNS、DNS、GitHub、特定cloud、国家、transportをauthority rootへ昇格�
 
 componentは固定revisionで参照します。隣接path、会話記憶、workspace membershipから正本や変更権限を推定しません。必須sourceを読めない場合は`CONTEXT-INCOMPLETE`と`stop-before-mutation`を返します。
 
+Stage 0 runtimeを変更する場合は、[`docs/development/stage0-bare-metal-runtime.ja.md`](docs/development/stage0-bare-metal-runtime.ja.md)と
+[`docs/development/checkpoint-and-branch-policy.ja.md`](docs/development/checkpoint-and-branch-policy.ja.md)も読みます。
+
 ## 日本語既定
 
 - README、技術文書、実験ログ、開発ログ、commit、PR、Issue、code comment、CLI help、検証報告は日本語を既定とする
@@ -89,6 +92,15 @@ git diff --check
 ```
 
 GitHub Actionsの成功は、記載した検査がそのrevisionで通ったことを示します。GNS実機、P2P、鍵回復、system resolver、production配布、目視確認の代用にはしません。
+
+## checkpointとremote保存
+
+- 小さく意味のある変更ごとに日本語commitを作り、検証範囲とUNKNOWNを開発ログへ残す
+- 完成を待たず、再開可能な状態ならremoteへpushする
+- `main`以外のbranch上でも、配布済み・統合済みとは主張しない
+- branchは作業の意味境界がある場合だけ作る。臨時待避branchには理由と廃棄／merge条件を残す
+- mergeはsource branch、target branch、検証、未試験範囲、merge後のcommitを記録する
+- remote pushは停電・local storage事故に対する保存receiptであり、実装完了やreview完了を意味しない
 
 ## 致命的問題の停止条件
 
