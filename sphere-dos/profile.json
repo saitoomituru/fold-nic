@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0.0",
+  "product": "fold-nic",
+  "profile_id": "fold-nic-atlantis-dos",
+  "edition": "prompt-engineering",
+  "distribution": "sphere-dos",
+  "distribution_role": "fold-nic-development-control-plane",
+  "interface": {
+    "machine_id": "prompt-line",
+    "display_name_ja": "Prompt Line Interface",
+    "startup_label_ja": "起動モード: Prompt Engineering Edition"
+  },
+  "standalone_runtime_implemented": false,
+  "default_world_profile": "fold-nic-forge",
+  "world_profiles": [
+    {
+      "id": "fold-nic-forge",
+      "authority": "user-selected",
+      "fact_scope": "fold-nic-local-development",
+      "registry_ref": "workspace/components.json@1.0.0",
+      "causality_profile": "unbound-no-core-default",
+      "presentation": "meaning-and-vessel-dual-register"
+    }
+  ],
+  "capabilities": [
+    "prompt-line-development-contract",
+    "pinned-component-registry",
+    "experiment-log-template",
+    "development-log-template",
+    "offline-validator",
+    "read-only-doctor",
+    "local-session-receipt"
+  ],
+  "explicit_non_capabilities": [
+    "fold-resolver-runtime",
+    "gnunet-gns-adapter",
+    "identity-key-generation",
+    "p2p-bootstrap",
+    "transport-failover",
+    "standalone-os-runtime",
+    "model-inference",
+    "provider-authentication",
+    "automatic-secret-discovery",
+    "persistent-scheduler"
+  ],
+  "unknowns": [
+    "canonical-fold-name-schema",
+    "identity-key-lifecycle",
+    "gns-integration-surface",
+    "multi-witness-recovery",
+    "production-distribution-profile"
+  ]
+}

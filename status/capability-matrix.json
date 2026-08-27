@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-08-27",
+  "owner": "saitoomituru/fold-nic",
+  "items": [
+    {
+      "id": "development-control-plane",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "LOCAL_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "SOURCE_TREE",
+      "distribution": "GIT_REPOSITORY",
+      "human_review": "PENDING",
+      "unknowns": []
+    },
+    {
+      "id": "fold-name-parser",
+      "implementation": "NOT_IMPLEMENTED",
+      "integration": "NOT_STARTED",
+      "automated_verification": "NOT_STARTED",
+      "packaging": "NOT_PROVIDED",
+      "distribution": "NOT_PROVIDED",
+      "human_review": "NOT_STARTED",
+      "unknowns": ["canonical-fold-name-schema"]
+    },
+    {
+      "id": "gnunet-gns-adapter",
+      "implementation": "NOT_IMPLEMENTED",
+      "integration": "NOT_STARTED",
+      "automated_verification": "NOT_STARTED",
+      "packaging": "NOT_PROVIDED",
+      "distribution": "NOT_PROVIDED",
+      "human_review": "NOT_STARTED",
+      "unknowns": ["gns-integration-surface", "identity-key-lifecycle"]
+    }
+  ]
+}

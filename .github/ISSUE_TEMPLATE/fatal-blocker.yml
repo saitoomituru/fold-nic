@@ -1,0 +1,56 @@
+name: 致命的問題・Semantic Stop
+description: secret、license、Identity continuity、authority等の致命的問題を記録して停止する
+title: "[致命的問題] "
+labels: ["fatal-blocker"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        秘密値そのものは書かないでください。安全な最小情報だけを記載します。
+  - type: input
+    id: revision
+    attributes:
+      label: 対象revision
+      placeholder: commit SHA / branch
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 対象・停止範囲
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: 観測結果
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待した境界・停止条件
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影響
+    validations:
+      required: true
+  - type: textarea
+    id: recovery
+    attributes:
+      label: 試した回復・代替経路
+  - type: textarea
+    id: unknowns
+    attributes:
+      label: UNKNOWN
+    validations:
+      required: true

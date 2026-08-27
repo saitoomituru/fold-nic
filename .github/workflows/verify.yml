@@ -1,0 +1,44 @@
+name: 最小再構築検証
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-verification:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
+    steps:
+      - name: repositoryを取得
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Pythonを準備
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          check-latest: false
+      - name: unit test
+        run: python -B -m unittest discover -s tests -v
+      - name: repository契約をoffline検証
+        run: python -B scripts/foldnic_dev.py validate --json
+      - name: read-only doctor
+        run: python -B scripts/foldnic_dev.py doctor --json
+      - name: SphereOS Atlantis DOSのlocal receipt生成を試験
+        run: python -B scripts/foldnic_dev.py sphere-dos boot --json
+      - name: SphereOS Atlantis DOSのstatusを確認
+        run: python -B scripts/foldnic_dev.py sphere-dos status --json

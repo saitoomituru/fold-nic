@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0.0",
+  "workspace_id": "fold-nic-atlantis-dos-forge",
+  "revision_policy": {
+    "mode": "pinned-revision",
+    "tracking_refs_are_observation_only": true,
+    "existing_checkout_update": "never-automatic"
+  },
+  "components": [
+    {
+      "id": "ZeroRoomLab-manifest",
+      "role": "fold8g-cross-repository-contract-and-ruler",
+      "repository": "https://github.com/saitoomituru/ZeroRoomLab-manifest.git",
+      "tracking_ref": "main",
+      "revision": "e13dc44969a279cbd02992b267a5354644896f54",
+      "required": true,
+      "write_boundary": "separate-repository-read-before-edit"
+    },
+    {
+      "id": "SphereOS-Atlantis",
+      "role": "pli-cli-execution-envelope-and-sphere-dos-upstream-contract",
+      "repository": "https://github.com/saitoomituru/SphereOS-Atlantis.git",
+      "tracking_ref": "dev/m6xx.1-reincarnation-sdk",
+      "revision": "5f7a697e81b77b8286884f75840e3638dcc7ed68",
+      "required": true,
+      "write_boundary": "separate-repository-read-before-edit"
+    },
+    {
+      "id": "OpenSourcePITETO",
+      "role": "experiment-and-development-log-operating-pattern-reference",
+      "repository": "https://github.com/saitoomituru/OpenSourcePITETO.git",
+      "tracking_ref": "main",
+      "revision": "8fb23031d9d4b1b4ae6ac134e3d6f52194a56a9f",
+      "required": false,
+      "write_boundary": "reference-only-no-runtime-dependency"
+    }
+  ]
+}
