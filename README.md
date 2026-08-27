@@ -105,10 +105,11 @@ cargo run -p fold-peer -- fetch \
   --dial /ip4/127.0.0.1/tcp/PORT/p2p/PEER_ID \
   --cid CID \
   --world fold-nic-forge \
-  --worldline stage0
+  --worldline stage0 \
+  --receipt-file /private/tmp/fold-peer-fetch-receipt.json
 ```
 
-このPeerIdはprocess内だけの一時transport識別子で、Fold Identityではありません。現段階ではloopback以外を拒否し、自動発見、恒久peer鍵、公開network、複数peer複製を提供しません。
+取得receiptは既存fileを上書きせず、CID、World文脈、一時PeerId、host clock観測、未検証事項だけを保存します。object本体、鍵、tokenは含めません。このPeerIdはprocess内だけの一時transport識別子で、Fold Identityではありません。現段階ではloopback以外を拒否し、自動発見、恒久peer鍵、公開network、複数peer複製を提供しません。
 
 実験ログ:
 

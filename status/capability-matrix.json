@@ -64,6 +64,16 @@
       "unknowns": ["peer-discovery", "persistent-identity", "multi-peer-replication", "public-network", "streaming-object-io"]
     },
     {
+      "id": "peer-fetch-provenance-receipt",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "FETCH_CLI_OPTIONAL_FILE",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "JSON_FILE",
+      "distribution": "LOCAL_RECEIPT_ONLY",
+      "human_review": "PENDING",
+      "unknowns": ["publisher-signature", "world-authority-binding", "clock-calibration", "receipt-signature"]
+    },
+    {
       "id": "fold-name-parser",
       "implementation": "NOT_IMPLEMENTED",
       "integration": "NOT_STARTED",
