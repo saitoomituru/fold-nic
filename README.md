@@ -45,6 +45,11 @@ Fold Identity / World / Capability
 4. [`workspace/components.json`](workspace/components.json)
 5. 対象に最も近い`AGENTS.md`、Schema、test、source
 
+ベアメタルStage 0の実装順、process分離、停止条件は
+[`docs/development/stage0-bare-metal-runtime.ja.md`](docs/development/stage0-bare-metal-runtime.ja.md)を参照してください。
+checkpoint commitとbranchの扱いは
+[`docs/development/checkpoint-and-branch-policy.ja.md`](docs/development/checkpoint-and-branch-policy.ja.md)を正本とします。
+
 起動表示:
 
 ```text
