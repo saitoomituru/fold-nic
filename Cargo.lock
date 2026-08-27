@@ -846,6 +846,7 @@ dependencies = [
  "cid",
  "clap",
  "fold-core",
+ "fold-kamii",
  "fold-store",
  "libp2p",
  "serde",
