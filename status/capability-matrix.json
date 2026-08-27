@@ -14,6 +14,16 @@
       "unknowns": []
     },
     {
+      "id": "runtime-protocol-types",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "LIBRARY_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_WORKSPACE",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["canonical-object-encoding", "cid-profile-binding"]
+    },
+    {
       "id": "fold-name-parser",
       "implementation": "NOT_IMPLEMENTED",
       "integration": "NOT_STARTED",

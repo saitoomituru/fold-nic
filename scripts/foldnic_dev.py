@@ -34,6 +34,9 @@ REQUIRED_FILES = (
     PROFILE_PATH,
     COMPONENTS_PATH,
     Path("status/capability-matrix.json"),
+    Path("Cargo.toml"),
+    Path("crates/fold-core/Cargo.toml"),
+    Path("crates/fold-core/src/lib.rs"),
 )
 
 LOG_REQUIRED_MARKERS = (

@@ -5,6 +5,7 @@ __pycache__/
 .fold-nic/
 dist/
 build/
+target/
 *.egg-info/
 
 # 鍵・資格情報・GNUnetのlocal stateは追跡しない。
