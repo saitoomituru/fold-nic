@@ -90,9 +90,40 @@ where
     }
 }
 
+/// [`invoke_kamii_adapter`]の呼び出し側向け既定timeout。
+///
+/// `fold-peer`／`fold-gateway`など、object受入・配信前のgateとして呼ぶ側で共有する。
+pub const DEFAULT_GATE_TIMEOUT_MILLIS: u64 = 250;
+
+/// Stage 0のplaceholder adapter。実inspection判定ロジックは`NOT_IMPLEMENTED`のまま、
+/// 常に`Allow`を返す。呼び出し側のtimeout／crash fail-closed配線を検証する目的でのみ使う。
+#[must_use]
+pub fn allow_all_placeholder_adapter(_: &KamiiInspectionRequest) -> KamiiVerdict {
+    KamiiVerdict::Allow
+}
+
+/// [`invoke_kamii_adapter`]を[`DEFAULT_GATE_TIMEOUT_MILLIS`]で呼び、
+/// fail-closedへ解決済みの[`KamiiVerdict`]だけを返す。
+///
+/// 呼び出し側は`Timeout`と`Crashed`を区別する必要がない場合にこちらを使う。
+pub fn gate<F>(request: KamiiInspectionRequest, adapter: F) -> KamiiVerdict
+where
+    F: FnOnce(&KamiiInspectionRequest) -> KamiiVerdict + Send + 'static,
+{
+    invoke_kamii_adapter(
+        request,
+        Duration::from_millis(DEFAULT_GATE_TIMEOUT_MILLIS),
+        adapter,
+    )
+    .resolved_verdict()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{KamiiInspectionRequest, KamiiOutcome, KamiiVerdict, invoke_kamii_adapter};
+    use super::{
+        KamiiInspectionRequest, KamiiOutcome, KamiiVerdict, allow_all_placeholder_adapter, gate,
+        invoke_kamii_adapter,
+    };
     use std::thread;
     use std::time::Duration;
 
@@ -136,6 +167,30 @@ mod tests {
         });
         assert_eq!(outcome, KamiiOutcome::Crashed);
         assert_eq!(outcome.resolved_verdict(), KamiiVerdict::Deny);
+    }
+
+    #[test]
+    fn allow_all_placeholder_adapterは常にallowを返す() {
+        assert_eq!(
+            allow_all_placeholder_adapter(&request()),
+            KamiiVerdict::Allow
+        );
+    }
+
+    #[test]
+    fn gateはresolved_verdictだけを返す() {
+        assert_eq!(
+            gate(request(), allow_all_placeholder_adapter),
+            KamiiVerdict::Allow
+        );
+        assert_eq!(gate(request(), |_| KamiiVerdict::Deny), KamiiVerdict::Deny);
+        assert_eq!(
+            gate(request(), |_| {
+                thread::sleep(Duration::from_secs(2));
+                KamiiVerdict::Allow
+            }),
+            KamiiVerdict::Deny
+        );
     }
 
     #[test]

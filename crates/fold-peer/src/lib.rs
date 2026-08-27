@@ -6,11 +6,10 @@
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::time::Duration;
 
 use cid::Cid;
 use fold_core::{WorldId, WorldRef, WorldlineId};
-use fold_kamii::{KamiiInspectionRequest, KamiiVerdict, invoke_kamii_adapter};
+use fold_kamii::{KamiiInspectionRequest, KamiiVerdict, allow_all_placeholder_adapter, gate};
 use fold_store::{LocalCas, PutReceipt};
 use libp2p::multiaddr::Protocol;
 use libp2p::{Multiaddr, PeerId};
@@ -18,15 +17,6 @@ use serde::{Deserialize, Serialize};
 
 pub const OBJECT_PROTOCOL: &str = "/fold-nic/object-exchange/0.1.0";
 pub const DEFAULT_MAX_OBJECT_BYTES: u64 = 8 * 1024 * 1024;
-
-/// Kamii adapter呼び出しをfail-closedで待つ上限。Stage 0 mock hook向けの暫定値。
-pub const KAMII_GATE_TIMEOUT_MILLIS: u64 = 250;
-
-/// Stage 0のplaceholder adapter。実inspection判定ロジックは`NOT_IMPLEMENTED`のまま、
-/// 常に`Allow`を返す。timeout／crashをfail-closedする配線自体を検証する目的でのみ使う。
-fn default_kamii_adapter(_: &KamiiInspectionRequest) -> KamiiVerdict {
-    KamiiVerdict::Allow
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObjectRequest {
@@ -119,7 +109,7 @@ pub fn accept_response(
     request: &ObjectRequest,
     response: ObjectResponse,
 ) -> Result<PutReceipt, PeerProtocolError> {
-    accept_response_with_kamii_adapter(cas, request, response, default_kamii_adapter)
+    accept_response_with_kamii_adapter(cas, request, response, allow_all_placeholder_adapter)
 }
 
 /// [`accept_response`]と同じ検査に加え、Kamii adapterを差し替えられる版。
@@ -185,15 +175,10 @@ where
         cid: cid.clone(),
         byte_len,
     };
-    let outcome = invoke_kamii_adapter(
-        inspection,
-        Duration::from_millis(KAMII_GATE_TIMEOUT_MILLIS),
-        kamii_adapter,
-    );
-    if outcome.resolved_verdict() != KamiiVerdict::Allow {
+    if gate(inspection, kamii_adapter) != KamiiVerdict::Allow {
         return Err(PeerProtocolError::new(
             "P2P_KAMII_DENIED",
-            format!("Kamii adapterがobjectをCASへ書き込む前に拒否しました: {outcome:?}"),
+            "Kamii adapterがobjectをCASへ書き込む前に拒否しました",
         ));
     }
 
@@ -213,7 +198,7 @@ where
 mod tests {
     use std::fs;
     use std::sync::atomic::{AtomicU64, Ordering};
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     use fold_store::cid_for;
 

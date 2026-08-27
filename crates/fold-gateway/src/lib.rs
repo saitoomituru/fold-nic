@@ -5,7 +5,6 @@
 #![forbid(unsafe_code)]
 
 use std::net::SocketAddr;
-use std::time::Duration;
 
 use axum::Router;
 use axum::body::Body;
@@ -15,20 +14,11 @@ use axum::http::{Response, StatusCode};
 use axum::response::{IntoResponse, Json};
 use axum::routing::get;
 use cid::Cid;
-use fold_kamii::{KamiiInspectionRequest, KamiiVerdict, invoke_kamii_adapter};
+use fold_kamii::{KamiiInspectionRequest, KamiiVerdict, allow_all_placeholder_adapter, gate};
 use fold_store::{LocalCas, StoreErrorCode};
 use serde::Serialize;
 
 const FOLD_CID: &str = "x-fold-cid";
-
-/// Kamii adapter呼び出しをfail-closedで待つ上限。Stage 0 mock hook向けの暫定値。
-const KAMII_GATE_TIMEOUT_MILLIS: u64 = 250;
-
-/// Stage 0のplaceholder adapter。実inspection判定ロジックは`NOT_IMPLEMENTED`のまま、
-/// 常に`Allow`を返す。timeout／crashをfail-closedする配線自体を検証する目的でのみ使う。
-fn default_kamii_adapter(_: &KamiiInspectionRequest) -> KamiiVerdict {
-    KamiiVerdict::Allow
-}
 const CONTENT_TYPE_OPTIONS: &str = "x-content-type-options";
 
 #[derive(Debug, Clone, Serialize)]
@@ -115,7 +105,7 @@ struct GatewayState {
 }
 
 pub fn router(cas: LocalCas) -> Router {
-    router_with_kamii_adapter(cas, default_kamii_adapter)
+    router_with_kamii_adapter(cas, allow_all_placeholder_adapter)
 }
 
 /// [`router`]と同じroutingに加え、Kamii adapterを差し替えられる版。
@@ -189,23 +179,16 @@ async fn get_object(
         cid: cid_text.clone(),
         byte_len,
     };
-    let allowed = tokio::task::spawn_blocking(move || {
-        invoke_kamii_adapter(
-            inspection,
-            Duration::from_millis(KAMII_GATE_TIMEOUT_MILLIS),
-            kamii_adapter,
-        )
-        .resolved_verdict()
-            == KamiiVerdict::Allow
-    })
-    .await
-    .map_err(|_| {
-        GatewayResponseError::new(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "KAMII_TASK_FAILED",
-            "Kamii gate taskが完了しませんでした",
-        )
-    })?;
+    let allowed =
+        tokio::task::spawn_blocking(move || gate(inspection, kamii_adapter) == KamiiVerdict::Allow)
+            .await
+            .map_err(|_| {
+                GatewayResponseError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "KAMII_TASK_FAILED",
+                    "Kamii gate taskが完了しませんでした",
+                )
+            })?;
     if !allowed {
         return Err(GatewayResponseError::new(
             StatusCode::FORBIDDEN,
@@ -246,7 +229,7 @@ async fn get_object(
 mod tests {
     use std::fs;
     use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     use axum::body::to_bytes;
     use http::Request;
