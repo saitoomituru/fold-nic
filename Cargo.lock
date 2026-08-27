@@ -816,6 +816,7 @@ dependencies = [
  "axum",
  "cid",
  "clap",
+ "fold-kamii",
  "fold-store",
  "http",
  "serde",

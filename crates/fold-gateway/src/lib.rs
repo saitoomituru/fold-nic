@@ -5,6 +5,7 @@
 #![forbid(unsafe_code)]
 
 use std::net::SocketAddr;
+use std::time::Duration;
 
 use axum::Router;
 use axum::body::Body;
@@ -14,10 +15,20 @@ use axum::http::{Response, StatusCode};
 use axum::response::{IntoResponse, Json};
 use axum::routing::get;
 use cid::Cid;
+use fold_kamii::{KamiiInspectionRequest, KamiiVerdict, invoke_kamii_adapter};
 use fold_store::{LocalCas, StoreErrorCode};
 use serde::Serialize;
 
 const FOLD_CID: &str = "x-fold-cid";
+
+/// Kamii adapter呼び出しをfail-closedで待つ上限。Stage 0 mock hook向けの暫定値。
+const KAMII_GATE_TIMEOUT_MILLIS: u64 = 250;
+
+/// Stage 0のplaceholder adapter。実inspection判定ロジックは`NOT_IMPLEMENTED`のまま、
+/// 常に`Allow`を返す。timeout／crashをfail-closedする配線自体を検証する目的でのみ使う。
+fn default_kamii_adapter(_: &KamiiInspectionRequest) -> KamiiVerdict {
+    KamiiVerdict::Allow
+}
 const CONTENT_TYPE_OPTIONS: &str = "x-content-type-options";
 
 #[derive(Debug, Clone, Serialize)]
@@ -92,11 +103,29 @@ pub fn validate_bind_scope(bind: SocketAddr) -> Result<(), BindScopeError> {
     }
 }
 
+/// [`get_object`]がobject配信前に呼ぶKamii adapterの型。
+///
+/// 実process分離までのStage 0では単純な関数ポインタとして扱う。
+pub type KamiiAdapterFn = fn(&KamiiInspectionRequest) -> KamiiVerdict;
+
+#[derive(Clone)]
+struct GatewayState {
+    cas: LocalCas,
+    kamii_adapter: KamiiAdapterFn,
+}
+
 pub fn router(cas: LocalCas) -> Router {
+    router_with_kamii_adapter(cas, default_kamii_adapter)
+}
+
+/// [`router`]と同じroutingに加え、Kamii adapterを差し替えられる版。
+///
+/// 実process分離やtest向けにadapterを注入する用途を想定する。
+pub fn router_with_kamii_adapter(cas: LocalCas, kamii_adapter: KamiiAdapterFn) -> Router {
     Router::new()
         .route("/healthz", get(health))
         .route("/v0/objects/{cid}", get(get_object))
-        .with_state(cas)
+        .with_state(GatewayState { cas, kamii_adapter })
 }
 
 async fn health() -> Json<GatewayHealth> {
@@ -116,7 +145,7 @@ async fn health() -> Json<GatewayHealth> {
 }
 
 async fn get_object(
-    State(cas): State<LocalCas>,
+    State(GatewayState { cas, kamii_adapter }): State<GatewayState>,
     Path(cid_text): Path<String>,
 ) -> Result<Response<Body>, GatewayResponseError> {
     let cid = cid_text.parse::<Cid>().map_err(|_| {
@@ -155,6 +184,35 @@ async fn get_object(
         })?;
 
     let cid_text = cid.to_string();
+    let byte_len = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
+    let inspection = KamiiInspectionRequest {
+        cid: cid_text.clone(),
+        byte_len,
+    };
+    let allowed = tokio::task::spawn_blocking(move || {
+        invoke_kamii_adapter(
+            inspection,
+            Duration::from_millis(KAMII_GATE_TIMEOUT_MILLIS),
+            kamii_adapter,
+        )
+        .resolved_verdict()
+            == KamiiVerdict::Allow
+    })
+    .await
+    .map_err(|_| {
+        GatewayResponseError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "KAMII_TASK_FAILED",
+            "Kamii gate taskが完了しませんでした",
+        )
+    })?;
+    if !allowed {
+        return Err(GatewayResponseError::new(
+            StatusCode::FORBIDDEN,
+            "GATEWAY_KAMII_DENIED",
+            "Kamii adapterがobjectの配信を許可しませんでした",
+        ));
+    }
     let mut response = Response::new(Body::from(bytes));
     *response.status_mut() = StatusCode::OK;
     let headers = response.headers_mut();
@@ -262,6 +320,49 @@ mod tests {
             .await
             .expect("object body");
         assert_eq!(&body[..], b"fold gateway fixture");
+    }
+
+    fn deny_adapter(_: &KamiiInspectionRequest) -> KamiiVerdict {
+        KamiiVerdict::Deny
+    }
+
+    fn hanging_adapter(_: &KamiiInspectionRequest) -> KamiiVerdict {
+        std::thread::sleep(Duration::from_secs(2));
+        KamiiVerdict::Allow
+    }
+
+    #[tokio::test]
+    async fn kamiiがdenyを返せば配信を拒否する() {
+        let root = TestRoot::new("kamii-deny");
+        let cas = LocalCas::open(&root.0, 1024).expect("open CAS");
+        let receipt = cas.put(b"quarantine candidate").expect("put fixture");
+        let response = router_with_kamii_adapter(cas, deny_adapter)
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/v0/objects/{}", receipt.cid))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn kamiiがtimeoutしても配信を許可しない() {
+        let root = TestRoot::new("kamii-timeout");
+        let cas = LocalCas::open(&root.0, 1024).expect("open CAS");
+        let receipt = cas.put(b"timeout candidate").expect("put fixture");
+        let response = router_with_kamii_adapter(cas, hanging_adapter)
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/v0/objects/{}", receipt.cid))
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
     }
 
     #[tokio::test]
