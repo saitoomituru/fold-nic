@@ -72,6 +72,17 @@ python3 -B scripts/foldnic_dev.py sphere-dos boot
 python3 -B scripts/foldnic_dev.py sphere-dos status
 ```
 
+Stage 0のread-only Gatewayは、host CAやorigin fetchを使わずloopbackだけへbindします。
+
+```console
+cargo run -p fold-gateway -- \
+  --bind 127.0.0.1:7743 \
+  --cas-root .fold-nic/cache/cas
+curl http://127.0.0.1:7743/healthz
+```
+
+このGatewayは現時点でhealthと検証済みlocal CAS objectのreadだけを提供します。write endpoint、origin fetch、P2P、`.fold` TLS ingressは未実装です。
+
 実験ログ:
 
 ```console

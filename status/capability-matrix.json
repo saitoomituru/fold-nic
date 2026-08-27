@@ -44,6 +44,16 @@
       "unknowns": ["rfc9111-full-coverage", "revalidation", "heuristic-freshness"]
     },
     {
+      "id": "localhost-read-only-gateway",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "LOCAL_CAS_READ_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_BINARY",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["origin-fetch", "host-ca-ingress", "write-ingest", "process-supervision"]
+    },
+    {
       "id": "fold-name-parser",
       "implementation": "NOT_IMPLEMENTED",
       "integration": "NOT_STARTED",

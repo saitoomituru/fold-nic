@@ -24,6 +24,7 @@ static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 pub enum StoreErrorCode {
     UnsafeRoot,
     ObjectTooLarge,
+    ObjectNotFound,
     Io,
     CorruptObject,
 }
@@ -34,6 +35,7 @@ impl StoreErrorCode {
         match self {
             Self::UnsafeRoot => "CAS_UNSAFE_ROOT",
             Self::ObjectTooLarge => "CAS_OBJECT_TOO_LARGE",
+            Self::ObjectNotFound => "CAS_OBJECT_NOT_FOUND",
             Self::Io => "CAS_IO_ERROR",
             Self::CorruptObject => "CAS_CORRUPT_OBJECT",
         }
@@ -226,8 +228,13 @@ impl LocalCas {
     pub fn get(&self, cid: &Cid) -> Result<Vec<u8>, StoreError> {
         let path = self.object_path(cid);
         reject_symlink(&path)?;
-        let mut file =
-            File::open(&path).map_err(|error| StoreError::io("CAS objectを開けません", error))?;
+        let mut file = File::open(&path).map_err(|error| {
+            if error.kind() == ErrorKind::NotFound {
+                StoreError::plain(StoreErrorCode::ObjectNotFound, "CAS objectがありません")
+            } else {
+                StoreError::io("CAS objectを開けません", error)
+            }
+        })?;
         let metadata = file
             .metadata()
             .map_err(|error| StoreError::io("CAS object metadataを読めません", error))?;
@@ -268,8 +275,13 @@ pub fn cid_for(bytes: &[u8]) -> Cid {
 }
 
 fn reject_symlink(path: &Path) -> Result<(), StoreError> {
-    let metadata = fs::symlink_metadata(path)
-        .map_err(|error| StoreError::io("path metadataを読めません", error))?;
+    let metadata = fs::symlink_metadata(path).map_err(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            StoreError::plain(StoreErrorCode::ObjectNotFound, "CAS objectがありません")
+        } else {
+            StoreError::io("path metadataを読めません", error)
+        }
+    })?;
     if metadata.file_type().is_symlink() {
         return Err(StoreError::plain(
             StoreErrorCode::UnsafeRoot,
@@ -372,6 +384,15 @@ mod tests {
         fs::write(cas.object_path(&receipt.cid), b"modified").expect("modify fixture");
         let error = cas.get(&receipt.cid).expect_err("must detect corruption");
         assert_eq!(error.code, StoreErrorCode::CorruptObject);
+    }
+
+    #[test]
+    fn 不在objectをstable_codeで返す() {
+        let root = TestRoot::new("not-found");
+        let cas = LocalCas::open(&root.0, 1024).expect("open CAS");
+        let missing = cid_for(b"missing");
+        let error = cas.get(&missing).expect_err("missing object");
+        assert_eq!(error.code, StoreErrorCode::ObjectNotFound);
     }
 
     #[cfg(unix)]

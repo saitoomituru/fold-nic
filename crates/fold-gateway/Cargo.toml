@@ -1,0 +1,24 @@
+[package]
+name = "fold-gateway"
+description = "Fold NICのloopback限定read-only Gateway"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+axum.workspace = true
+cid.workspace = true
+clap.workspace = true
+fold-store = { path = "../fold-store" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+http.workspace = true
+tower.workspace = true
+
+[lints]
+workspace = true
