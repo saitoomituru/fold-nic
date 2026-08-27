@@ -11,9 +11,50 @@ Fold Identity / World / Capability
   -> GNS / DNS / IPv6 / LAN / future transport
 ```
 
+## なぜこのrepositoryがあるか
+
+発端は`quantaril.site` / `quantaril.help` / `quantaril.cloud`のdomain失効という運用事故だった
+（ZeroRoomLab-manifest [#26](https://github.com/saitoomituru/ZeroRoomLab-manifest/issues/26)、
+[#27](https://github.com/saitoomituru/ZeroRoomLab-manifest/issues/27)）。この事故を単なるDNS復旧で
+終わらせず、「ICANN domainが死んでもproject identityが生き残る」「GitHub accountが消えても
+project identityが生き残る」構造そのものを緊急鍛造する場として
+ZeroRoomLab-manifest [#28](https://github.com/saitoomituru/ZeroRoomLab-manifest/issues/28)
+（`[EMERGENCY][Fold8G] Quantaril Cloudを.fold分散名前空間/P2P基幹へ移行する急造ミッション`）が立った。
+
+Fold NICはこの#28の実装受け皿である。GNS、DNS、GitHub、特定cloud、特定国家をauthority rootへ
+昇格させず、Fold Identity・World・Capabilityを複数のIAM方言・transportへ可搬にする。
+
+```text
+旧SphereOS 3.x / 4.x: SphereOS/Instance -> Akasha Layer -> Vespa Cloud -> VPC/SaaS/PaaS/tunnel
+Fold8G               : Fold Identity/World/Capability -> .fold namespace -> resolver/IAM adapter -> P2P/provider/物理transport
+```
+
+社会から隠れるための網ではなく、public web gatewayと分散Identityが共存する形を目指す。GNUnet GNSは
+「`.fold`をこれで実装確定する」ためではなく、zone key／signed record／local resolverという概念を
+安価に試験するための最初のadapter候補として扱う。
+
 ## 現在地
 
 状態: `EXPERIMENTAL / DEVELOPMENT-CONTROL-PLANE / STAGE0-RUNTIME-PARTIAL`
+
+進行はfold-nic [#1](https://github.com/saitoomituru/fold-nic/issues/1)
+（`[Stage 0] ベアメタルTransport／Cache基盤を小さく実装する`）で追跡する。開発は
+`dev/stage0-transport-cache`branchで小さなcheckpointごとに進め、安定した区切りで`main`へ
+中間merge（`--no-ff`、merge記録は開発ログへ）する。Dockerを初期成立条件にせず、非root・
+loopback・専用CAS rootのbare metal userspace processから始める。
+
+Stage 0の実装順:
+
+```text
+protocol types
+  -> local CAS
+  -> localhost Fold Gateway
+  -> conservative HTTP cache guard
+  -> two-process P2P object exchange
+  -> provenance receipt
+  -> Kamii mock hook
+  -> Stage 0統合判定とmain merge
+```
 
 この初期revisionに含まれるもの:
 
@@ -23,19 +64,27 @@ Fold Identity / World / Capability
 - 実験ログと開発ログのテンプレート、生成、検証
 - local session receiptを作る開発shell
 - offline validator、doctor、unit test、GitHub Actions
-- CID再検証付きlocal CASとloopback限定read-only Gateway
-- 明示dialによるloopback二プロセス間object交換
+- Rust workspaceの基本protocol型（`fold-core`: WorldRef、locator、multihash参照、manifest、receipt、stable error code）
+- CID再検証付きlocal CAS（`fold-store`）とloopback限定read-only Gateway（`fold-gateway`）
+- private／no-store／CookieをshareへUpgradeしないHTTP共有cache guard（`fold-http-policy`）
+- 明示dialによるloopback二プロセス間object交換（`fold-peer`）と、秘密値を含まない取得provenance receipt
+- manifest署名のexact bytes検証library（`fold-provenance`。publisher鍵→World authorityのbindingは未実装のまま、意図的に外に出している）
+- Kamii adapter呼び出しの timeout／crash を`Allow`へ潰さないmock hook（`fold-kamii`）
 
 まだ含まれないもの:
 
 - `.fold` resolver runtime
 - GNUnet GNS adapter
 - zone key生成、署名、rotation、recovery
+- publisher鍵→World authorityのRegistry契約（binding先をFold NIC本体／ZeroRoomLab-manifest側の
+  どちらが正本として持つかは未確認。着手前にUser Gateで確認する）
+- Kamii adapterの実process分離、HAGE shared-memory ABI
 - P2P discovery／bootstrap、複数node replication、transport failover
 - kernel NIC、system resolver差替え
 - standalone SphereOS runtime、model inference、常駐scheduler
 
-`unknown ≠ pass`です。開発制御面が動くことを、Fold8G runtimeの実装完了へ拡張しません。
+`unknown ≠ pass`です。開発制御面が動くことを、Fold8G runtimeの実装完了へ拡張しません。`main`への
+中間mergeも、Stage 0完成・security audit済み・production配布可能を意味しません。
 
 ## PLIで開始する
 
