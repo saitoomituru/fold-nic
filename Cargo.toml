@@ -3,6 +3,7 @@ members = [
   "crates/fold-core",
   "crates/fold-gateway",
   "crates/fold-http-policy",
+  "crates/fold-kamii",
   "crates/fold-peer",
   "crates/fold-provenance",
   "crates/fold-store",
