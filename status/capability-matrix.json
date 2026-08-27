@@ -74,6 +74,16 @@
       "unknowns": ["publisher-signature", "world-authority-binding", "clock-calibration", "receipt-signature"]
     },
     {
+      "id": "manifest-signature-exact-bytes-verification",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "PURE_LIBRARY_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_WORKSPACE",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["publisher-authority-binding", "key-rotation", "cli-wiring", "receipt-integration"]
+    },
+    {
       "id": "fold-name-parser",
       "implementation": "NOT_IMPLEMENTED",
       "integration": "NOT_STARTED",

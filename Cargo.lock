@@ -846,6 +846,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "fold-provenance"
+version = "0.1.0-alpha.1"
+dependencies = [
+ "ed25519-dalek",
+ "fold-core",
+ "fold-store",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "fold-store"
 version = "0.1.0-alpha.1"
 dependencies = [

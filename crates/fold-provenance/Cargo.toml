@@ -1,0 +1,20 @@
+[package]
+name = "fold-provenance"
+description = "受信manifestのexact bytesに対するdetached署名検証（authority bindingは含まない）"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ed25519-dalek.workspace = true
+fold-core = { path = "../fold-core" }
+fold-store = { path = "../fold-store" }
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

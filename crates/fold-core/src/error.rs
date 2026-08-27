@@ -23,6 +23,9 @@ pub enum FoldErrorCode {
     RoutingError,
     AdapterError,
     ProtocolError,
+    UnsupportedSignatureScheme,
+    InvalidPublicKey,
+    InvalidSignatureEncoding,
 }
 
 impl FoldErrorCode {
@@ -42,6 +45,9 @@ impl FoldErrorCode {
             Self::RoutingError => "ROUTING_ERROR",
             Self::AdapterError => "ADAPTER_ERROR",
             Self::ProtocolError => "PROTOCOL_ERROR",
+            Self::UnsupportedSignatureScheme => "UNSUPPORTED_SIGNATURE_SCHEME",
+            Self::InvalidPublicKey => "INVALID_PUBLIC_KEY",
+            Self::InvalidSignatureEncoding => "INVALID_SIGNATURE_ENCODING",
         }
     }
 }
