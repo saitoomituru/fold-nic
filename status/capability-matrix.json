@@ -24,6 +24,16 @@
       "unknowns": ["canonical-object-encoding", "cid-profile-binding"]
     },
     {
+      "id": "local-content-addressed-store",
+      "implementation": "IMPLEMENTED_ALPHA",
+      "integration": "LOCAL_LIBRARY_ONLY",
+      "automated_verification": "IMPLEMENTED_ALPHA",
+      "packaging": "CARGO_WORKSPACE",
+      "distribution": "SOURCE_BRANCH",
+      "human_review": "PENDING",
+      "unknowns": ["total-store-quota", "streaming-write", "manifest-persistence"]
+    },
+    {
       "id": "fold-name-parser",
       "implementation": "NOT_IMPLEMENTED",
       "integration": "NOT_STARTED",

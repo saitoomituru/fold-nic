@@ -24,6 +24,7 @@ def copy_fixture(target: Path) -> None:
         "README.md",
         "LICENSE",
         "Cargo.toml",
+        "Cargo.lock",
         "crates",
         "docs",
         "experiments",

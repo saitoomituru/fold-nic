@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/fold-core"]
+members = ["crates/fold-core", "crates/fold-store"]
 resolver = "2"
 
 [workspace.package]
@@ -12,6 +12,8 @@ rust-version = "1.93"
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+cid = "0.11.3"
+multihash-codetable = { version = "0.2.2", default-features = false, features = ["sha2"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -1,0 +1,15 @@
+[package]
+name = "fold-store"
+description = "Fold NICのcontent-addressed local object store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+cid.workspace = true
+multihash-codetable.workspace = true
+
+[lints]
+workspace = true
