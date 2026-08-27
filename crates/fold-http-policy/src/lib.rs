@@ -233,8 +233,7 @@ fn vary_contains_star(headers: &HeaderMap) -> bool {
     headers.get_all(VARY).iter().any(|value| {
         value
             .to_str()
-            .map(|text| text.split(',').any(|item| item.trim() == "*"))
-            .unwrap_or(true)
+            .map_or(true, |text| text.split(',').any(|item| item.trim() == "*"))
     })
 }
 
