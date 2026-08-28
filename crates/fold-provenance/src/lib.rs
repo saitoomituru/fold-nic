@@ -118,10 +118,12 @@ fn decode_hex(value: &str) -> Result<Vec<u8>, String> {
     if !raw.len().is_multiple_of(2) {
         return Err("hex文字列の長さが奇数です".to_owned());
     }
-    raw.chunks_exact(2)
-        .map(|pair| {
-            let high = hex_nibble(pair[0])?;
-            let low = hex_nibble(pair[1])?;
+    raw.as_chunks::<2>()
+        .0
+        .iter()
+        .map(|&[high_byte, low_byte]| {
+            let high = hex_nibble(high_byte)?;
+            let low = hex_nibble(low_byte)?;
             Ok((high << 4) | low)
         })
         .collect()
