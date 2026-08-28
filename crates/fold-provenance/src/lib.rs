@@ -21,11 +21,6 @@ use serde::{Deserialize, Serialize};
 pub const SIGNATURE_SCHEME_ED25519_V1: &str = "ed25519-v1";
 pub const MANIFEST_SIGNATURE_SCHEMA: &str = "fold-manifest-signature/0";
 
-/// publisher鍵とWorld authorityのbindingが未確定であることを示す固定値。
-///
-/// Registry契約が実装されるまで、この crateの検証結果には常にこの値を積む。
-pub const PUBLISHER_AUTHORITY_UNVERIFIED: &str = "PUBLISHER_AUTHORITY_UNVERIFIED";
-
 /// 受信bytesの外側に添付するdetached署名。bytes本体は変更しない。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DetachedManifestSignature {
@@ -35,20 +30,27 @@ pub struct DetachedManifestSignature {
     pub signature_hex: String,
 }
 
-/// exact bytes検証の結果。authority bindingの判断は含まない。
+/// exact bytes検証の結果。
+///
+/// 数学的な署名検証結果（`signature_valid`）と、検証に使った鍵の参照
+/// （`scheme`／`public_key_hex`）だけを保持する。この鍵をWorld authorityとして
+/// 信頼してよいかの判断（`AuthorityStatus`／`TrustBasis`）はこの crateの範囲外であり、
+/// この型はauthority判断を表すfieldを一切持たない。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ManifestSignatureVerification {
     pub schema: String,
     pub cid: String,
     pub signature_valid: bool,
-    pub publisher_authority: String,
+    /// 検証に使った署名scheme。`decode_public_key`が成功した鍵にのみ紐づく。
+    pub scheme: String,
+    /// 検証に使った公開鍵のcanonical hex（小文字）。入力の大小文字表記は保持しない。
+    pub public_key_hex: String,
 }
 
 /// 受信した`bytes`そのものに対し、detached署名を検証する。
 ///
 /// canonicalizeや正規化は行わず、受信bytesをそのまま署名検証へ渡す。
-/// `publisher_authority`は常に[`PUBLISHER_AUTHORITY_UNVERIFIED`]を返し、
-/// この公開鍵がWorldのauthorityとして正当かどうかは判断しない。
+/// 返り値はこの公開鍵がWorldのauthorityとして正当かどうかを一切含まない。
 ///
 /// # Errors
 ///
@@ -80,7 +82,17 @@ pub fn verify_manifest_signature(
         schema: MANIFEST_SIGNATURE_SCHEMA.to_owned(),
         cid: cid_for(bytes).to_string(),
         signature_valid,
-        publisher_authority: PUBLISHER_AUTHORITY_UNVERIFIED.to_owned(),
+        scheme: signature.scheme.clone(),
+        public_key_hex: encode_hex(verifying_key.as_bytes()),
+    })
+}
+
+fn encode_hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+
+    bytes.iter().fold(String::new(), |mut output, byte| {
+        let _ = write!(output, "{byte:02x}");
+        output
     })
 }
 
@@ -178,9 +190,20 @@ mod tests {
         let verification = verify_manifest_signature(bytes, &signature).expect("verified");
         assert!(verification.signature_valid);
         assert_eq!(verification.cid, cid_for(bytes).to_string());
+        assert_eq!(verification.scheme, SIGNATURE_SCHEME_ED25519_V1);
+        assert_eq!(verification.public_key_hex, signature.public_key_hex);
+    }
+
+    #[test]
+    fn public_key_hexは大文字入力でも小文字canonical形で返る() {
+        let bytes = b"fold-object-manifest-fixture";
+        let mut signature = sign(bytes);
+        signature.public_key_hex = signature.public_key_hex.to_uppercase();
+        signature.signature_hex = signature.signature_hex.to_uppercase();
+        let verification = verify_manifest_signature(bytes, &signature).expect("verified");
         assert_eq!(
-            verification.publisher_authority,
-            PUBLISHER_AUTHORITY_UNVERIFIED
+            verification.public_key_hex,
+            signature.public_key_hex.to_lowercase()
         );
     }
 

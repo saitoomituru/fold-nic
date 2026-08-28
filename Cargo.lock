@@ -805,7 +805,6 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 name = "fold-authority"
 version = "0.1.0-alpha.1"
 dependencies = [
- "ed25519-dalek",
  "fold-provenance",
  "serde",
  "serde_json",
