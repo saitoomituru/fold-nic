@@ -53,9 +53,14 @@ unknown != pass
 - GNSは最初のadapter候補であり、Fold Identityの正本ではない
 - `.fold`はICANN TLD所有を主張しない
 - DNS fallbackをsilent downgradeにしない
-- private key、seed、token、credential、peerのprivate stateをcommit、log、receiptへ入れない
+- agentは、利用者／production／非公開Worldの実在key materialを、明示User Gateなしに探索、読出し、export、commit、log、Issue、通常receiptへ入れない
+- `INSECURE_PUBLIC_TEST_KEY`として最初から秘密性を放棄した決定的fixtureは、専用fixture、production不可、source revision、security classを明示した場合に限り使用できる
+- このagent操作制限は、Fold NIC製品が提供するuser-authorized key import／export／eject／rotate capabilityを禁止しない
+- 鍵操作のpayload channelと監査receiptを分け、通常receiptにはraw key materialを入れず、操作、key ID、provider ref、scope、権限ref、結果を記録する
 - 鍵方式、rotation、recovery、multi-witnessが未確定な間は安全性を保証済みと書かない
 - resolver、GNS adapter、P2P runtimeが未実装なら`NOT_IMPLEMENTED`を維持する
+
+鍵exportという語の三義、NIC鍵slot、provider委譲、可搬性profileの補足は、[`note/20260828-1334__鍵export三義とNIC鍵slot責務.ja.md`](note/20260828-1334__鍵export三義とNIC鍵slot責務.ja.md)を参照します。noteは設計材料であり、protocol正本や実装receiptへ自動昇格しません。
 
 ## 既存toolを先に探す
 
