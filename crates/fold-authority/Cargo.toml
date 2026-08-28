@@ -1,0 +1,19 @@
+[package]
+name = "fold-authority"
+description = "publisher署名の数学的検証とWorld authority判断を分離するresolver境界（DEVHAGE bootstrap含む）"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+fold-provenance = { path = "../fold-provenance" }
+serde.workspace = true
+
+[dev-dependencies]
+ed25519-dalek.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
