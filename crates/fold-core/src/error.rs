@@ -26,6 +26,7 @@ pub enum FoldErrorCode {
     UnsupportedSignatureScheme,
     InvalidPublicKey,
     InvalidSignatureEncoding,
+    UnsupportedManifestSchema,
 }
 
 impl FoldErrorCode {
@@ -48,6 +49,7 @@ impl FoldErrorCode {
             Self::UnsupportedSignatureScheme => "UNSUPPORTED_SIGNATURE_SCHEME",
             Self::InvalidPublicKey => "INVALID_PUBLIC_KEY",
             Self::InvalidSignatureEncoding => "INVALID_SIGNATURE_ENCODING",
+            Self::UnsupportedManifestSchema => "UNSUPPORTED_MANIFEST_SCHEMA",
         }
     }
 }
