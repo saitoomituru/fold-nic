@@ -6,11 +6,15 @@
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::time::Duration;
 
 use cid::Cid;
 use fold_core::{WorldId, WorldRef, WorldlineId};
-use fold_kamii::{KamiiInspectionRequest, KamiiVerdict, allow_all_placeholder_adapter, gate};
-use fold_store::{LocalCas, PutReceipt};
+use fold_kamii::{
+    DEFAULT_GATE_TIMEOUT_MILLIS, KamiiInspectionRequest, KamiiOutcome, KamiiVerdict,
+    allow_all_placeholder_adapter, invoke_kamii_adapter,
+};
+use fold_store::{LocalCas, PutReceipt, cid_for};
 use libp2p::multiaddr::Protocol;
 use libp2p::{Multiaddr, PeerId};
 use serde::{Deserialize, Serialize};
@@ -170,16 +174,28 @@ where
         ));
     }
 
+    // Kamiiへは応答が「自己申告した」cidではなく、受信bytesから今ここで再計算した
+    // 確定CIDだけを渡す。申告値と確定値が違えばKamiiを呼ばずに拒否する。
+    let computed_cid = cid_for(&bytes);
+    if computed_cid != requested_cid {
+        return Err(PeerProtocolError::new(
+            "P2P_CID_MISMATCH",
+            "受信byte列から再計算したCIDが要求と一致しません",
+        ));
+    }
+
     let byte_len = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
     let inspection = KamiiInspectionRequest {
-        cid: cid.clone(),
+        cid: computed_cid.to_string(),
         byte_len,
     };
-    if gate(inspection, kamii_adapter) != KamiiVerdict::Allow {
-        return Err(PeerProtocolError::new(
-            "P2P_KAMII_DENIED",
-            "Kamii adapterがobjectをCASへ書き込む前に拒否しました",
-        ));
+    let outcome = invoke_kamii_adapter(
+        inspection,
+        Duration::from_millis(DEFAULT_GATE_TIMEOUT_MILLIS),
+        kamii_adapter,
+    );
+    if outcome.resolved_verdict() != KamiiVerdict::Allow {
+        return Err(kamii_rejection_error(&outcome));
     }
 
     let receipt = cas
@@ -192,6 +208,24 @@ where
         ));
     }
     Ok(receipt)
+}
+
+/// Kamii拒否理由を、安全判定（明示Deny／Quarantine）と障害・容量診断
+/// （timeout／crash／capacity超過）で別codeに分ける。呼び出し側presentation層は
+/// 前者を403相当、後者を503相当へ写像できる。
+fn kamii_rejection_error(outcome: &KamiiOutcome) -> PeerProtocolError {
+    match outcome {
+        KamiiOutcome::Verdict(_) => PeerProtocolError::new(
+            "P2P_KAMII_DENIED",
+            format!("Kamii adapterがobjectを明示的に拒否しました: {outcome:?}"),
+        ),
+        KamiiOutcome::Timeout | KamiiOutcome::Crashed | KamiiOutcome::Saturated => {
+            PeerProtocolError::new(
+                "P2P_KAMII_UNAVAILABLE",
+                format!("Kamii adapterが一時的に応答しませんでした: {outcome:?}"),
+            )
+        }
+    }
 }
 
 #[cfg(test)]
@@ -323,7 +357,7 @@ mod tests {
     }
 
     #[test]
-    fn kamiiがtimeoutしても書込み前に拒否する() {
+    fn kamiiがtimeoutすればunavailableとして書込み前に拒否する() {
         let cas = temporary_cas();
         let bytes = b"timeout candidate";
         let request = request(bytes);
@@ -342,7 +376,35 @@ mod tests {
             },
         )
         .expect_err("reject");
-        assert_eq!(error.code, "P2P_KAMII_DENIED");
+        assert_eq!(error.code, "P2P_KAMII_UNAVAILABLE");
         assert!(cas.get(&cid_for(bytes)).is_err());
+    }
+
+    #[test]
+    fn kamiiには申告cidではなく確定cidを渡す() {
+        let cas = temporary_cas();
+        let bytes = b"kamii sees computed cid";
+        let request = request(bytes);
+        let observed_cid = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let observed_cid_for_adapter = std::sync::Arc::clone(&observed_cid);
+        accept_response_with_kamii_adapter(
+            &cas,
+            &request,
+            ObjectResponse::Found {
+                cid: request.cid.clone(),
+                world_id: request.world_id.clone(),
+                worldline_id: request.worldline_id.clone(),
+                bytes: bytes.to_vec(),
+            },
+            move |inspection| {
+                *observed_cid_for_adapter.lock().expect("lock") = Some(inspection.cid.clone());
+                KamiiVerdict::Allow
+            },
+        )
+        .expect("accepted");
+        assert_eq!(
+            observed_cid.lock().expect("lock").as_deref(),
+            Some(cid_for(bytes).to_string().as_str())
+        );
     }
 }

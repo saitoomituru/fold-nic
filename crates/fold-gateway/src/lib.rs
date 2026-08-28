@@ -5,16 +5,22 @@
 #![forbid(unsafe_code)]
 
 use std::net::SocketAddr;
+use std::time::Duration;
 
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, State};
-use axum::http::header::{CACHE_CONTROL, CONTENT_DISPOSITION, CONTENT_TYPE, ETAG, HeaderValue};
+use axum::http::header::{
+    CACHE_CONTROL, CONTENT_DISPOSITION, CONTENT_TYPE, ETAG, HeaderValue, RETRY_AFTER,
+};
 use axum::http::{Response, StatusCode};
 use axum::response::{IntoResponse, Json};
 use axum::routing::get;
 use cid::Cid;
-use fold_kamii::{KamiiInspectionRequest, KamiiVerdict, allow_all_placeholder_adapter, gate};
+use fold_kamii::{
+    DEFAULT_GATE_TIMEOUT_MILLIS, KamiiInspectionRequest, KamiiOutcome, KamiiVerdict,
+    allow_all_placeholder_adapter, invoke_kamii_adapter,
+};
 use fold_store::{LocalCas, StoreErrorCode};
 use serde::Serialize;
 
@@ -43,6 +49,7 @@ struct GatewayResponseError {
     status: StatusCode,
     code: &'static str,
     detail: &'static str,
+    retry_after_seconds: Option<u32>,
 }
 
 impl GatewayResponseError {
@@ -51,13 +58,29 @@ impl GatewayResponseError {
             status,
             code,
             detail,
+            retry_after_seconds: None,
+        }
+    }
+
+    /// 503等、再試行が意味を持つ応答へ`Retry-After`候補秒数を添える版。
+    const fn new_with_retry_after(
+        status: StatusCode,
+        code: &'static str,
+        detail: &'static str,
+        retry_after_seconds: u32,
+    ) -> Self {
+        Self {
+            status,
+            code,
+            detail,
+            retry_after_seconds: Some(retry_after_seconds),
         }
     }
 }
 
 impl IntoResponse for GatewayResponseError {
     fn into_response(self) -> axum::response::Response {
-        (
+        let mut response = (
             self.status,
             Json(ErrorBody {
                 schema: "fold-gateway-error/0",
@@ -65,7 +88,13 @@ impl IntoResponse for GatewayResponseError {
                 detail: self.detail,
             }),
         )
-            .into_response()
+            .into_response();
+        if let Some(seconds) = self.retry_after_seconds
+            && let Ok(value) = HeaderValue::from_str(&seconds.to_string())
+        {
+            response.headers_mut().insert(RETRY_AFTER, value);
+        }
+        response
     }
 }
 
@@ -179,22 +208,23 @@ async fn get_object(
         cid: cid_text.clone(),
         byte_len,
     };
-    let allowed =
-        tokio::task::spawn_blocking(move || gate(inspection, kamii_adapter) == KamiiVerdict::Allow)
-            .await
-            .map_err(|_| {
-                GatewayResponseError::new(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "KAMII_TASK_FAILED",
-                    "Kamii gate taskが完了しませんでした",
-                )
-            })?;
-    if !allowed {
-        return Err(GatewayResponseError::new(
-            StatusCode::FORBIDDEN,
-            "GATEWAY_KAMII_DENIED",
-            "Kamii adapterがobjectの配信を許可しませんでした",
-        ));
+    let outcome = tokio::task::spawn_blocking(move || {
+        invoke_kamii_adapter(
+            inspection,
+            Duration::from_millis(DEFAULT_GATE_TIMEOUT_MILLIS),
+            kamii_adapter,
+        )
+    })
+    .await
+    .map_err(|_| {
+        GatewayResponseError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "KAMII_TASK_FAILED",
+            "Kamii gate taskが完了しませんでした",
+        )
+    })?;
+    if outcome.resolved_verdict() != KamiiVerdict::Allow {
+        return Err(kamii_rejection_error(&outcome));
     }
     let mut response = Response::new(Body::from(bytes));
     *response.status_mut() = StatusCode::OK;
@@ -223,6 +253,32 @@ async fn get_object(
         HeaderValue::from_str(&cid_text).expect("CID text is a valid header value"),
     );
     Ok(response)
+}
+
+/// Kamii adapterのtimeout／crash／容量超過を再試行の目安として提示するdefault秒数。
+const KAMII_UNAVAILABLE_RETRY_AFTER_SECONDS: u32 = 1;
+
+/// Kamii拒否理由を、安全判定（明示Deny／Quarantine）と障害・容量診断
+/// （timeout／crash／capacity超過）で別status・別codeに分ける。
+///
+/// 明示的な`Deny`は403（再試行しても変わらない判断）、`Timeout`／`Crashed`／
+/// `Saturated`は503 + `Retry-After`（一時的な利用不能）として区別する。
+fn kamii_rejection_error(outcome: &KamiiOutcome) -> GatewayResponseError {
+    match outcome {
+        KamiiOutcome::Verdict(_) => GatewayResponseError::new(
+            StatusCode::FORBIDDEN,
+            "GATEWAY_KAMII_DENIED",
+            "Kamii adapterがobjectの配信を明示的に拒否しました",
+        ),
+        KamiiOutcome::Timeout | KamiiOutcome::Crashed | KamiiOutcome::Saturated => {
+            GatewayResponseError::new_with_retry_after(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "GATEWAY_KAMII_UNAVAILABLE",
+                "Kamii adapterが一時的に応答しませんでした",
+                KAMII_UNAVAILABLE_RETRY_AFTER_SECONDS,
+            )
+        }
+    }
 }
 
 #[cfg(test)]
@@ -332,7 +388,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn kamiiがtimeoutしても配信を許可しない() {
+    async fn kamiiがtimeoutすれば503とretry_afterで配信を拒否する() {
         let root = TestRoot::new("kamii-timeout");
         let cas = LocalCas::open(&root.0, 1024).expect("open CAS");
         let receipt = cas.put(b"timeout candidate").expect("put fixture");
@@ -345,7 +401,8 @@ mod tests {
             )
             .await
             .expect("response");
-        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert!(response.headers().get(RETRY_AFTER).is_some());
     }
 
     #[tokio::test]
