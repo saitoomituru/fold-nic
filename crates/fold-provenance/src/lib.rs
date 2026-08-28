@@ -58,6 +58,12 @@ pub fn verify_manifest_signature(
     bytes: &[u8],
     signature: &DetachedManifestSignature,
 ) -> Result<ManifestSignatureVerification, FoldError> {
+    if signature.schema != MANIFEST_SIGNATURE_SCHEMA {
+        return Err(FoldError::new(
+            FoldErrorCode::UnsupportedManifestSchema,
+            format!("未対応のmanifest署名schemaです: {}", signature.schema),
+        ));
+    }
     if signature.scheme != SIGNATURE_SCHEME_ED25519_V1 {
         return Err(FoldError::new(
             FoldErrorCode::UnsupportedSignatureScheme,
@@ -103,17 +109,36 @@ fn decode_signature(hex_value: &str) -> Result<Signature, FoldError> {
     Ok(Signature::from_bytes(&array))
 }
 
+/// hex文字列をbyte列へ変換する。
+///
+/// `value`が非ASCII（多byte UTF-8）を含んでいても、byte単位で走査するため
+/// 文字境界外のstring sliceでpanicしない。非ASCII byteは単に不正hex桁として拒否する。
 fn decode_hex(value: &str) -> Result<Vec<u8>, String> {
-    if !value.len().is_multiple_of(2) {
+    let raw = value.as_bytes();
+    if !raw.len().is_multiple_of(2) {
         return Err("hex文字列の長さが奇数です".to_owned());
     }
-    (0..value.len())
-        .step_by(2)
-        .map(|index| {
-            u8::from_str_radix(&value[index..index + 2], 16)
-                .map_err(|_| format!("hex文字列を解釈できません: {}", &value[index..index + 2]))
+    raw.as_chunks::<2>()
+        .0
+        .iter()
+        .map(|&[high_byte, low_byte]| {
+            let high = hex_nibble(high_byte)?;
+            let low = hex_nibble(low_byte)?;
+            Ok((high << 4) | low)
         })
         .collect()
+}
+
+/// 1 ASCII byteをhex nibbleへ変換する。ASCII以外・非hex文字はErrorにする。
+fn hex_nibble(byte: u8) -> Result<u8, String> {
+    match byte {
+        b'0'..=b'9' => Ok(byte - b'0'),
+        b'a'..=b'f' => Ok(byte - b'a' + 10),
+        b'A'..=b'F' => Ok(byte - b'A' + 10),
+        _ => Err(format!(
+            "hex文字列を解釈できません: 0x{byte:02x}はhex桁ではありません"
+        )),
+    }
 }
 
 #[cfg(test)]
@@ -202,5 +227,55 @@ mod tests {
         signature.public_key_hex = encode_hex(other_key.verifying_key().as_bytes());
         let verification = verify_manifest_signature(bytes, &signature).expect("verification runs");
         assert!(!verification.signature_valid);
+    }
+
+    #[test]
+    fn 未対応schemaをerrorで返す() {
+        let bytes = b"fold-object-manifest-fixture";
+        let mut signature = sign(bytes);
+        signature.schema = "fold-manifest-signature/999".to_owned();
+        let error = verify_manifest_signature(bytes, &signature).expect_err("must error");
+        assert_eq!(error.code, FoldErrorCode::UnsupportedManifestSchema);
+    }
+
+    /// #3: 非ASCII混じりのhex入力でUTF-8境界panicへ到達しないことを固定する負例集。
+    #[test]
+    fn 非ascii混じりのhex入力はpanicせずerrorになる() {
+        let bytes = b"fold-object-manifest-fixture";
+        let cases = [
+            "あ0",      // 3byte文字 + 1byte、偶数byte長だが文字境界外
+            "0あ",      // 先頭1byte + 3byte文字
+            "ａｂｃｄ", // 全角英数（hex桁に見えるが非ASCII）
+            "🦀🦀",     // 4byte絵文字2個
+            "",         // 空文字列
+            "a",        // 奇数長
+            "gg",       // ASCIIだがhex桁ではない
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", // 非hexだが長さは64
+        ];
+        for hex_value in cases {
+            let mut signature = sign(bytes);
+            signature.public_key_hex = hex_value.to_owned();
+            let error = verify_manifest_signature(bytes, &signature).expect_err(&format!(
+                "public_key_hex={hex_value:?} must error without panic"
+            ));
+            assert_eq!(error.code, FoldErrorCode::InvalidPublicKey);
+
+            let mut signature = sign(bytes);
+            signature.signature_hex = hex_value.to_owned();
+            let error = verify_manifest_signature(bytes, &signature).expect_err(&format!(
+                "signature_hex={hex_value:?} must error without panic"
+            ));
+            assert_eq!(error.code, FoldErrorCode::InvalidSignatureEncoding);
+        }
+    }
+
+    #[test]
+    fn hexの大文字小文字混在を正しく受理する() {
+        let bytes = b"fold-object-manifest-fixture";
+        let mut signature = sign(bytes);
+        signature.public_key_hex = signature.public_key_hex.to_uppercase();
+        signature.signature_hex = signature.signature_hex.to_uppercase();
+        let verification = verify_manifest_signature(bytes, &signature).expect("uppercase hex");
+        assert!(verification.signature_valid);
     }
 }

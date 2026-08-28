@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "crates/fold-authority",
   "crates/fold-core",
   "crates/fold-gateway",
   "crates/fold-http-policy",
