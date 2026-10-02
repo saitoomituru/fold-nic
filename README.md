@@ -1,5 +1,12 @@
 # Fold NIC
 
+## ZeroRoomLab Portable Civilizationとの接続
+
+Fold NICは、Portable Civilization Programのnetwork側で、Identity / World / Capabilityをtransportそのものと混同せず扱う境界を担当する。目的は「地球の特定cloudや単一networkをroot serverにしない」方向のnetwork portabilityであり、Game / Real / Villageの並行workstreamへ共通の接続面を提供する。
+
+この節は上位ナラティブとの接続であり、未実装機能を実装済みへ昇格させない。上位Program: [Fork the Lab. Deploy a World. #47](https://github.com/saitoomituru/ZeroRoomLab-manifest/issues/47)
+
+
 Fold NICは、Fold8GのIdentity、World、Capabilityを、名前空間、IAM、Transportへ投影するための仮想意味ネットワークインターフェースです。
 
 物理NIC、kernel driver、ICANN TLD、GNUnet GNSの別名ではありません。`Fold8G`をprotocol generation、`Fold NIC`を端末やserviceへ接続する実装Vesselとして分離します。
